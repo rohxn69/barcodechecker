@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Supplier Barcode Validator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg: #0f1113;
+    --panel: #17191c;
+    --panel-2: #1f2226;
+    --line: #2a2d32;
+    --text: #eef0f2;
+    --text-dim: #9aa0a8;
+    --mono: 'Courier New', Consolas, monospace;
+    --sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --valid: #3ddc84;
+    --valid-bg: rgba(61,220,132,0.08);
+    --invalid: #ff5d5d;
+    --invalid-bg: rgba(255,93,93,0.08);
+    --accent: #f5b342;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.025) 0 2px, transparent 2px 6px),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    min-height:100vh;
+    padding:32px 20px 80px;
+  }
+  .wrap{max-width:980px; margin:0 auto;}
+
+  header{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    margin-bottom:28px;
+    padding-bottom:20px;
+    border-bottom:1px solid var(--line);
+  }
+  .bars{
+    display:flex;
+    gap:2px;
+    align-items:flex-end;
+    height:36px;
+    flex-shrink:0;
+  }
+  .bars span{
+    display:block;
+    width:3px;
+    background:var(--accent);
+  }
+  .bars span:nth-child(1){height:60%}
+  .bars span:nth-child(2){height:100%}
+  .bars span:nth-child(3){height:40%}
+  .bars span:nth-child(4){height:80%}
+  .bars span:nth-child(5){height:55%}
+  .bars span:nth-child(6){height:100%}
+  .bars span:nth-child(7){height:30%}
+  .bars span:nth-child(8){height:70%}
+
+  h1{
+    font-size:22px;
+    margin:0;
+    letter-spacing:0.02em;
+    font-weight:600;
+  }
+  header p{
+    margin:4px 0 0;
+    color:var(--text-dim);
+    font-size:13px;
+  }
+
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:24px;
+    margin-bottom:20px;
+  }
+
+  .rules{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(180px,1fr));
+    gap:10px;
+    margin-bottom:20px;
+  }
+  .rule{
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:12px 14px;
+    font-size:12.5px;
+    color:var(--text-dim);
+  }
+  .rule b{color:var(--text); display:block; font-size:12px; margin-bottom:2px; font-family:var(--mono);}
+
+  #dropzone{
+    border:1px dashed var(--line);
+    border-radius:8px;
+    padding:36px 20px;
+    text-align:center;
+    cursor:pointer;
+    transition:border-color .15s, background .15s;
+  }
+  #dropzone:hover, #dropzone.drag{
+    border-color:var(--accent);
+    background:rgba(245,179,66,0.04);
+  }
+  #dropzone .icon{font-size:28px; margin-bottom:10px; opacity:.8;}
+  #dropzone .main{font-size:14px; margin-bottom:4px;}
+  #dropzone .sub{font-size:12px; color:var(--text-dim);}
+  #fileInput{display:none;}
+
+  #status{
+    margin-top:14px;
+    font-size:13px;
+    color:var(--text-dim);
+    min-height:18px;
+  }
+  #status.err{color:var(--invalid);}
+
+  .summary{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    margin:0 0 18px;
+  }
+  .stat{
+    flex:1;
+    min-width:130px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:14px 16px;
+  }
+  .stat .n{font-family:var(--mono); font-size:24px; font-weight:700;}
+  .stat .l{font-size:11.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.05em; margin-top:2px;}
+  .stat.valid .n{color:var(--valid);}
+  .stat.invalid .n{color:var(--invalid);}
+
+  .toolbar{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:14px;
+  }
+  .toolbar input[type=text]{
+    flex:1;
+    min-width:180px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:8px 10px;
+    color:var(--text);
+    font-size:13px;
+    font-family:var(--mono);
+  }
+  select{
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:8px 10px;
+    color:var(--text);
+    font-size:13px;
+  }
+  button{
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:8px 14px;
+    color:var(--text);
+    font-size:13px;
+    cursor:pointer;
+    font-family:var(--sans);
+  }
+  button:hover{border-color:var(--accent);}
+  button.primary{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:#1a1400;
+    font-weight:600;
+  }
+  button.primary:hover{opacity:.9;}
+  button:disabled{opacity:.4; cursor:not-allowed;}
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+  }
+  thead th{
+    text-align:left;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    color:var(--text-dim);
+    border-bottom:1px solid var(--line);
+    padding:8px 10px;
+    position:sticky;
+    top:0;
+    background:var(--panel);
+  }
+  tbody td{
+    padding:8px 10px;
+    border-bottom:1px solid var(--line);
+    font-family:var(--mono);
+  }
+  tbody tr:hover{background:var(--panel-2);}
+  .badge{
+    display:inline-block;
+    padding:2px 8px;
+    border-radius:20px;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.03em;
+    font-family:var(--sans);
+  }
+  .badge.VALID{background:var(--valid-bg); color:var(--valid);}
+  .badge.NOTVALID{background:var(--invalid-bg); color:var(--invalid);}
+  .reason-col{color:var(--text-dim); font-family:var(--sans);}
+  .type-badge{
+    display:inline-block;
+    padding:2px 8px;
+    border-radius:4px;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.04em;
+    font-family:var(--sans);
+    background:rgba(245,179,66,0.12);
+    color:var(--accent);
+  }
+
+  #tableWrap{max-height:520px; overflow:auto; border:1px solid var(--line); border-radius:8px;}
+
+  .empty{
+    text-align:center;
+    color:var(--text-dim);
+    font-size:13px;
+    padding:30px 0;
+  }
+
+  footer{
+    text-align:center;
+    color:var(--text-dim);
+    font-size:11.5px;
+    margin-top:30px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="bars">
+      <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <div>
+      <h1>Supplier Barcode Validator</h1>
+      <p>Checks a <code>supplier_barcode</code> column for blanks, non-numeric characters, and incorrect length (11 digits expected).</p>
+    </div>
+  </header>
+
+  <div class="card">
+    <div class="rules">
+      <div class="rule"><b>Blank</b>Empty cell value</div>
+      <div class="rule"><b>Non-numeric</b>Any character other than 0–9</div>
+      <div class="rule"><b>Too short</b>Fewer than 12 digits</div>
+      <div class="rule"><b>Too long</b>More than 14 digits</div>
+      <div class="rule"><b>Valid</b>12 digits = UPC · 13 = EAN · 14 = GTIN</div>
+    </div>
+
+    <div id="dropzone">
+      <div class="icon">📁</div>
+      <div class="main">Click to choose a file, or drag one here</div>
+      <div class="sub">.xlsx · .xls · .xlsm · .csv — must contain a "supplier_barcode" header</div>
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.xlsm,.csv">
+    </div>
+    <div id="status"></div>
+  </div>
+
+  <div class="card" id="resultsCard" style="display:none;">
+    <div class="summary">
+      <div class="stat"><div class="n" id="statTotal">0</div><div class="l">Records checked</div></div>
+      <div class="stat valid"><div class="n" id="statValid">0</div><div class="l">Valid</div></div>
+      <div class="stat invalid"><div class="n" id="statInvalid">0</div><div class="l">Not valid</div></div>
+    </div>
+
+    <div class="toolbar">
+      <input type="text" id="searchBox" placeholder="Search barcode or reason...">
+      <select id="filterSelect">
+        <option value="ALL">All results</option>
+        <option value="VALID">Valid only</option>
+        <option value="NOT VALID">Not valid only</option>
+      </select>
+      <button id="downloadXlsx">Download report (.xlsx)</button>
+      <button id="downloadCsv">Download report (.csv)</button>
+      <button class="primary" id="newFileBtn">Validate another file</button>
+    </div>
+
+    <div id="tableWrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:32%">Supplier Barcode</th>
+            <th style="width:16%">Validation</th>
+            <th>Reason</th>
+            <th style="width:12%">Type</th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+      <div class="empty" id="emptyMsg" style="display:none;">No rows match your filter.</div>
+    </div>
+  </div>
+
+  <footer>Runs entirely in your browser — files are never uploaded anywhere.</footer>
+</div>
+
+<script>
+(function(){
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  const statusEl = document.getElementById('status');
+  const resultsCard = document.getElementById('resultsCard');
+  const resultsBody = document.getElementById('resultsBody');
+  const statTotal = document.getElementById('statTotal');
+  const statValid = document.getElementById('statValid');
+  const statInvalid = document.getElementById('statInvalid');
+  const searchBox = document.getElementById('searchBox');
+  const filterSelect = document.getElementById('filterSelect');
+  const emptyMsg = document.getElementById('emptyMsg');
+
+  let reportRows = []; // {barcode, status, reason}
+  let currentFileLabel = 'validation-report';
+
+  dropzone.addEventListener('click', () => fileInput.click());
+  ['dragenter','dragover'].forEach(evt=>{
+    dropzone.addEventListener(evt, e=>{ e.preventDefault(); dropzone.classList.add('drag'); });
+  });
+  ['dragleave','drop'].forEach(evt=>{
+    dropzone.addEventListener(evt, e=>{ e.preventDefault(); dropzone.classList.remove('drag'); });
+  });
+  dropzone.addEventListener('drop', e=>{
+    const f = e.dataTransfer.files[0];
+    if(f) handleFile(f);
+  });
+  fileInput.addEventListener('change', e=>{
+    const f = e.target.files[0];
+    if(f) handleFile(f);
+  });
+
+  document.getElementById('newFileBtn').addEventListener('click', ()=>{
+    resultsCard.style.display = 'none';
+    fileInput.value = '';
+    setStatus('');
+  });
+
+  searchBox.addEventListener('input', renderTable);
+  filterSelect.addEventListener('change', renderTable);
+  document.getElementById('downloadXlsx').addEventListener('click', ()=>downloadReport('xlsx'));
+  document.getElementById('downloadCsv').addEventListener('click', ()=>downloadReport('csv'));
+
+  function setStatus(msg, isErr){
+    statusEl.textContent = msg;
+    statusEl.className = isErr ? 'err' : '';
+  }
+
+  function handleFile(file){
+    currentFileLabel = file.name.replace(/\.[^.]+$/, '') + '-validation';
+    setStatus('Reading "' + file.name + '"...');
+    const reader = new FileReader();
+    reader.onerror = () => setStatus('Could not read the file.', true);
+    reader.onload = (e) => {
+      try{
+        const data = new Uint8Array(e.target.result);
+        const wb = XLSX.read(data, {type:'array'});
+        const wsName = wb.SheetNames[0];
+        const ws = wb.Sheets[wsName];
+        const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:'', raw:false});
+        processRows(rows);
+      }catch(err){
+        console.error(err);
+        setStatus('Error parsing file: ' + err.message, true);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function processRows(rows){
+    if(!rows || rows.length === 0){
+      setStatus('The file appears to be empty.', true);
+      return;
+    }
+    const headerRow = rows[0];
+    let barcodeCol = -1;
+    for(let i=0; i<headerRow.length; i++){
+      const h = String(headerRow[i] === undefined || headerRow[i] === null ? '' : headerRow[i]).trim().toLowerCase();
+      if(h === 'supplier_barcode'){ barcodeCol = i; break; }
+    }
+    if(barcodeCol === -1){
+      setStatus('Header "supplier_barcode" not found in the first row.', true);
+      return;
+    }
+
+    reportRows = [];
+    for(let r=1; r<rows.length; r++){
+      const rawVal = rows[r][barcodeCol];
+      // stop if entirely blank trailing rows aren't meaningfully present; VBA used LastRow based on this column,
+      // so we include every row up to the sheet's extent, same as the macro.
+      const barcode = (rawVal === undefined || rawVal === null) ? '' : String(rawVal).trim();
+      let status = 'VALID';
+      let reason = '';
+      let type = '';
+
+      if(barcode === ''){
+        status = 'NOT VALID';
+        reason = 'Blank value';
+      } else if(/[^0-9]/.test(barcode)){
+        status = 'NOT VALID';
+        reason = 'Contains non-numeric characters';
+      } else if(barcode.length < 12){
+        status = 'NOT VALID';
+        reason = 'Only ' + barcode.length + ' characters (Expected 12-14)';
+      } else if(barcode.length > 14){
+        status = 'NOT VALID';
+        reason = barcode.length + ' characters (Expected 12-14)';
+      } else {
+        if(barcode.length === 12) type = 'UPC';
+        else if(barcode.length === 13) type = 'EAN';
+        else if(barcode.length === 14) type = 'GTIN';
+      }
+
+      reportRows.push({barcode, status, type, reason});
+    }
+
+    setStatus('Validation complete — ' + reportRows.length + ' record(s) checked.');
+    renderResults();
+  }
+
+  function renderResults(){
+    const total = reportRows.length;
+    const validCount = reportRows.filter(r=>r.status==='VALID').length;
+    const invalidCount = total - validCount;
+    statTotal.textContent = total;
+    statValid.textContent = validCount;
+    statInvalid.textContent = invalidCount;
+    searchBox.value = '';
+    filterSelect.value = 'ALL';
+    resultsCard.style.display = 'block';
+    renderTable();
+  }
+
+  function renderTable(){
+    const q = searchBox.value.trim().toLowerCase();
+    const filter = filterSelect.value;
+    const filtered = reportRows.filter(r=>{
+      if(filter !== 'ALL' && r.status !== filter) return false;
+      if(q && !(r.barcode.toLowerCase().includes(q) || r.reason.toLowerCase().includes(q) || (r.type||'').toLowerCase().includes(q))) return false;
+      return true;
+    });
+
+    resultsBody.innerHTML = '';
+    emptyMsg.style.display = filtered.length ? 'none' : 'block';
+
+    const frag = document.createDocumentFragment();
+    filtered.forEach(r=>{
+      const tr = document.createElement('tr');
+      const badgeClass = r.status === 'VALID' ? 'VALID' : 'NOTVALID';
+      tr.innerHTML =
+        '<td>' + escapeHtml(r.barcode) + '</td>' +
+        '<td><span class="badge ' + badgeClass + '">' + r.status + '</span></td>' +
+        '<td class="reason-col">' + escapeHtml(r.reason) + '</td>' +
+        '<td>' + (r.type ? '<span class="type-badge">' + r.type + '</span>' : '') + '</td>';
+      frag.appendChild(tr);
+    });
+    resultsBody.appendChild(frag);
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function downloadReport(type){
+    const aoa = [['Supplier Barcode','Validation','Reason','Type']];
+    reportRows.forEach(r => aoa.push([r.barcode, r.status, r.reason, r.type || '']));
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = [{wch:22},{wch:14},{wch:36},{wch:10}];
+
+    if(type === 'xlsx'){
+      const wb = XLSX.utils.book_new();
+      const now = new Date();
+      const datePart = String(now.getDate()).padStart(2,'0') + '-' +
+                        String(now.getMonth()+1).padStart(2,'0') + '-' +
+                        now.getFullYear();
+      let timePart = now.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',hour12:true});
+      timePart = timePart.replace(/:/g, '.'); // Excel sheet names can't contain ':'
+      let sheetName = (datePart + ' ' + timePart)
+        .replace(/[\\\/\?\*\[\]:]/g, '.') // strip all Excel-invalid sheet name characters
+        .substring(0, 31);
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      XLSX.writeFile(wb, currentFileLabel + '.xlsx');
+    } else {
+      const csv = XLSX.utils.sheet_to_csv(ws);
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = currentFileLabel + '.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  }
+})();
+</script>
+</body>
+</html>
