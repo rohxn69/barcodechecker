@@ -1,270 +1,347 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Supplier Barcode Validator</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<style>
-  :root{
-    --bg: #0f1113;
-    --panel: #17191c;
-    --panel-2: #1f2226;
-    --line: #2a2d32;
-    --text: #eef0f2;
-    --text-dim: #9aa0a8;
-    --mono: 'Courier New', Consolas, monospace;
-    --sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    --valid: #3ddc84;
-    --valid-bg: rgba(61,220,132,0.08);
-    --invalid: #ff5d5d;
-    --invalid-bg: rgba(255,93,93,0.08);
-    --accent: #f5b342;
-  }
-  *{box-sizing:border-box;}
-  body{
-    margin:0;
-    background:
-      repeating-linear-gradient(90deg, rgba(255,255,255,0.025) 0 2px, transparent 2px 6px),
-      var(--bg);
-    color:var(--text);
-    font-family:var(--sans);
-    min-height:100vh;
-    padding:32px 20px 80px;
-  }
-  .wrap{max-width:980px; margin:0 auto;}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supplier Barcode Validator</title>
+  <!-- SheetJS Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #eef1f5;
+      --card-bg: #ffffff;
+      --card-sub: #f7f9fb;
+      --ink: #16202c;
+      --ink-soft: #5b6b7c;
+      --border: #dbe1e8;
+      --navy: #16202c;
+      --navy-soft: #24334a;
+      --accent: #c8752e;
+      --accent-dark: #a85f22;
+      --accent-tint: #fbeade;
+      --success-bg: #e5f3ec;
+      --success-ink: #1f7a5c;
+      --error-bg: #fbe9e6;
+      --error-ink: #b33f2c;
+      --info-bg: #e8eef5;
+      --info-ink: #2b4a6b;
+      --radius: 10px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      background-image: radial-gradient(circle at 1px 1px, rgba(22,32,44,0.06) 1px, transparent 0);
+      background-size: 22px 22px;
+      color: var(--ink);
+      max-width: 860px;
+      margin: 48px auto;
+      padding: 0 20px 60px;
+    }
 
-  header{
-    display:flex;
-    align-items:center;
-    gap:16px;
-    margin-bottom:28px;
-    padding-bottom:20px;
-    border-bottom:1px solid var(--line);
-  }
-  .bars{
-    display:flex;
-    gap:2px;
-    align-items:flex-end;
-    height:36px;
-    flex-shrink:0;
-  }
-  .bars span{
-    display:block;
-    width:3px;
-    background:var(--accent);
-  }
-  .bars span:nth-child(1){height:60%}
-  .bars span:nth-child(2){height:100%}
-  .bars span:nth-child(3){height:40%}
-  .bars span:nth-child(4){height:80%}
-  .bars span:nth-child(5){height:55%}
-  .bars span:nth-child(6){height:100%}
-  .bars span:nth-child(7){height:30%}
-  .bars span:nth-child(8){height:70%}
+    /* ---- Masthead ---- */
+    .masthead {
+      background: var(--navy);
+      background-image: linear-gradient(135deg, var(--navy) 0%, var(--navy-soft) 100%);
+      border-radius: var(--radius) var(--radius) 0 0;
+      padding: 26px 30px 22px;
+      position: relative;
+      overflow: hidden;
+    }
+    .masthead::after {
+      content: "";
+      position: absolute;
+      top: 0; right: 0; bottom: 0;
+      width: 6px;
+      background: repeating-linear-gradient(
+        45deg,
+        var(--accent),
+        var(--accent) 6px,
+        transparent 6px,
+        transparent 12px
+      );
+    }
+    .masthead h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: #fff;
+      margin: 0 0 4px;
+      letter-spacing: -0.01em;
+    }
+    .masthead p {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.88rem;
+      color: #aab6c4;
+      margin: 0;
+      max-width: 54ch;
+    }
 
-  h1{
-    font-size:22px;
-    margin:0;
-    letter-spacing:0.02em;
-    font-weight:600;
-  }
-  header p{
-    margin:4px 0 0;
-    color:var(--text-dim);
-    font-size:13px;
-  }
+    /* ---- Card ---- */
+    .card {
+      background: var(--card-bg);
+      padding: 28px 30px;
+      border-radius: 0 0 var(--radius) var(--radius);
+      border: 1px solid var(--border);
+      border-top: none;
+      box-shadow: 0 12px 28px -14px rgba(22, 32, 44, 0.22);
+      margin-bottom: 24px;
+    }
+    .card.standalone {
+      border-radius: var(--radius);
+      border-top: 1px solid var(--border);
+    }
 
-  .card{
-    background:var(--panel);
-    border:1px solid var(--line);
-    border-radius:10px;
-    padding:24px;
-    margin-bottom:20px;
-  }
+    /* ---- Rules Grid ---- */
+    .rules {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+    .rule {
+      background: var(--card-sub);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 0.78rem;
+      color: var(--ink-soft);
+    }
+    .rule b {
+      color: var(--ink);
+      display: block;
+      font-size: 0.8rem;
+      margin-bottom: 2px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
 
-  .rules{
-    display:grid;
-    grid-template-columns:repeat(auto-fit, minmax(180px,1fr));
-    gap:10px;
-    margin-bottom:20px;
-  }
-  .rule{
-    background:var(--panel-2);
-    border:1px solid var(--line);
-    border-radius:8px;
-    padding:12px 14px;
-    font-size:12.5px;
-    color:var(--text-dim);
-  }
-  .rule b{color:var(--text); display:block; font-size:12px; margin-bottom:2px; font-family:var(--mono);}
+    /* ---- Dropzone ---- */
+    #dropzone {
+      position: relative;
+      border: 1.5px dashed var(--border);
+      border-radius: 8px;
+      background: var(--card-sub);
+      padding: 32px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    #dropzone:hover, #dropzone.drag {
+      border-color: var(--accent);
+      background: var(--accent-tint);
+    }
+    #dropzone .icon { font-size: 26px; margin-bottom: 8px; opacity: 0.8; }
+    #dropzone .main {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+    #dropzone .sub {
+      font-size: 0.8rem;
+      color: var(--ink-soft);
+    }
+    #fileInput { display: none; }
 
-  #dropzone{
-    border:1px dashed var(--line);
-    border-radius:8px;
-    padding:36px 20px;
-    text-align:center;
-    cursor:pointer;
-    transition:border-color .15s, background .15s;
-  }
-  #dropzone:hover, #dropzone.drag{
-    border-color:var(--accent);
-    background:rgba(245,179,66,0.04);
-  }
-  #dropzone .icon{font-size:28px; margin-bottom:10px; opacity:.8;}
-  #dropzone .main{font-size:14px; margin-bottom:4px;}
-  #dropzone .sub{font-size:12px; color:var(--text-dim);}
-  #fileInput{display:none;}
+    /* ---- Status Box ---- */
+    #status {
+      margin-top: 16px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      display: none;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      border-left: 3px solid transparent;
+      background: var(--info-bg);
+      color: var(--info-ink);
+      border-left-color: var(--info-ink);
+    }
+    #status.err {
+      background: var(--error-bg);
+      color: var(--error-ink);
+      border-left-color: var(--error-ink);
+    }
 
-  #status{
-    margin-top:14px;
-    font-size:13px;
-    color:var(--text-dim);
-    min-height:18px;
-  }
-  #status.err{color:var(--invalid);}
+    /* ---- Results Summary Stats ---- */
+    .summary {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .stat {
+      flex: 1;
+      min-width: 130px;
+      background: var(--card-sub);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+    }
+    .stat .n {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .stat .l {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--ink-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 2px;
+    }
+    .stat.valid .n { color: var(--success-ink); }
+    .stat.invalid .n { color: var(--error-ink); }
 
-  .summary{
-    display:flex;
-    gap:12px;
-    flex-wrap:wrap;
-    margin:0 0 18px;
-  }
-  .stat{
-    flex:1;
-    min-width:130px;
-    background:var(--panel-2);
-    border:1px solid var(--line);
-    border-radius:8px;
-    padding:14px 16px;
-  }
-  .stat .n{font-family:var(--mono); font-size:24px; font-weight:700;}
-  .stat .l{font-size:11.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.05em; margin-top:2px;}
-  .stat.valid .n{color:var(--valid);}
-  .stat.invalid .n{color:var(--invalid);}
+    /* ---- Toolbar ---- */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .toolbar input[type=text] {
+      flex: 1;
+      min-width: 180px;
+      background: var(--card-sub);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: var(--ink);
+      font-size: 0.85rem;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    .toolbar input[type=text]:focus {
+      outline: none;
+      border-color: var(--accent);
+      background-color: #fff;
+      box-shadow: 0 0 0 3px rgba(200, 117, 46, 0.15);
+    }
+    select {
+      background: var(--card-sub);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: var(--ink);
+      font-size: 0.85rem;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+    }
+    select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    button {
+      background: var(--navy);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 9px 16px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.15s ease, transform 0.06s ease;
+    }
+    button:hover:not(:disabled) {
+      background: var(--accent-dark);
+    }
+    button:active:not(:disabled) {
+      transform: scale(0.99);
+    }
+    button.primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    button.primary:hover:not(:disabled) {
+      background: var(--accent-dark);
+    }
 
-  .toolbar{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    flex-wrap:wrap;
-    margin-bottom:14px;
-  }
-  .toolbar input[type=text]{
-    flex:1;
-    min-width:180px;
-    background:var(--panel-2);
-    border:1px solid var(--line);
-    border-radius:6px;
-    padding:8px 10px;
-    color:var(--text);
-    font-size:13px;
-    font-family:var(--mono);
-  }
-  select{
-    background:var(--panel-2);
-    border:1px solid var(--line);
-    border-radius:6px;
-    padding:8px 10px;
-    color:var(--text);
-    font-size:13px;
-  }
-  button{
-    background:var(--panel-2);
-    border:1px solid var(--line);
-    border-radius:6px;
-    padding:8px 14px;
-    color:var(--text);
-    font-size:13px;
-    cursor:pointer;
-    font-family:var(--sans);
-  }
-  button:hover{border-color:var(--accent);}
-  button.primary{
-    background:var(--accent);
-    border-color:var(--accent);
-    color:#1a1400;
-    font-weight:600;
-  }
-  button.primary:hover{opacity:.9;}
-  button:disabled{opacity:.4; cursor:not-allowed;}
+    /* ---- Table ---- */
+    #tableWrap {
+      max-height: 480px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    thead th {
+      text-align: left;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--ink-soft);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 12px;
+      position: sticky;
+      top: 0;
+      background: var(--card-sub);
+    }
+    tbody td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      font-family: 'IBM Plex Mono', monospace;
+      color: var(--ink);
+    }
+    tbody tr:hover { background: var(--card-sub); }
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    .badge.VALID { background: var(--success-bg); color: var(--success-ink); }
+    .badge.NOTVALID { background: var(--error-bg); color: var(--error-ink); }
+    .reason-col { color: var(--ink-soft); font-family: 'Inter', sans-serif; }
+    .type-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      font-family: 'IBM Plex Mono', monospace;
+      background: var(--accent-tint);
+      color: var(--accent-dark);
+    }
 
-  table{
-    width:100%;
-    border-collapse:collapse;
-    font-size:13px;
-  }
-  thead th{
-    text-align:left;
-    font-size:11px;
-    text-transform:uppercase;
-    letter-spacing:.05em;
-    color:var(--text-dim);
-    border-bottom:1px solid var(--line);
-    padding:8px 10px;
-    position:sticky;
-    top:0;
-    background:var(--panel);
-  }
-  tbody td{
-    padding:8px 10px;
-    border-bottom:1px solid var(--line);
-    font-family:var(--mono);
-  }
-  tbody tr:hover{background:var(--panel-2);}
-  .badge{
-    display:inline-block;
-    padding:2px 8px;
-    border-radius:20px;
-    font-size:11px;
-    font-weight:700;
-    letter-spacing:.03em;
-    font-family:var(--sans);
-  }
-  .badge.VALID{background:var(--valid-bg); color:var(--valid);}
-  .badge.NOTVALID{background:var(--invalid-bg); color:var(--invalid);}
-  .reason-col{color:var(--text-dim); font-family:var(--sans);}
-  .type-badge{
-    display:inline-block;
-    padding:2px 8px;
-    border-radius:4px;
-    font-size:11px;
-    font-weight:700;
-    letter-spacing:.04em;
-    font-family:var(--sans);
-    background:rgba(245,179,66,0.12);
-    color:var(--accent);
-  }
+    .empty {
+      text-align: center;
+      color: var(--ink-soft);
+      font-size: 0.85rem;
+      padding: 30px 0;
+    }
 
-  #tableWrap{max-height:520px; overflow:auto; border:1px solid var(--line); border-radius:8px;}
-
-  .empty{
-    text-align:center;
-    color:var(--text-dim);
-    font-size:13px;
-    padding:30px 0;
-  }
-
-  footer{
-    text-align:center;
-    color:var(--text-dim);
-    font-size:11.5px;
-    margin-top:30px;
-  }
-</style>
+    footer {
+      text-align: center;
+      margin-top: 22px;
+      font-size: 0.78rem;
+      color: var(--ink-soft);
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
 </head>
 <body>
 <div class="wrap">
 
-  <header>
-    <div class="bars">
-      <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
-    </div>
-    <div>
-      <h1>Supplier Barcode Validator</h1>
-      <p>Checks a <code>supplier_barcode</code> column for blanks, non-numeric characters, and incorrect length (11 digits expected).</p>
-    </div>
-  </header>
+  <div class="masthead">
+    <h1>Supplier Barcode Validator</h1>
+    <p>Checks a <code>supplier_barcode</code> column for blanks, non-numeric characters, and incorrect length format (12–14 digits expected).</p>
+  </div>
 
   <div class="card">
     <div class="rules">
@@ -272,7 +349,7 @@
       <div class="rule"><b>Non-numeric</b>Any character other than 0–9</div>
       <div class="rule"><b>Too short</b>Fewer than 12 digits</div>
       <div class="rule"><b>Too long</b>More than 14 digits</div>
-      <div class="rule"><b>Valid</b>12 digits = UPC · 13 = EAN · 14 = GTIN</div>
+      <div class="rule"><b>Valid</b>12 = UPC · 13 = EAN · 14 = GTIN</div>
     </div>
 
     <div id="dropzone">
@@ -284,7 +361,7 @@
     <div id="status"></div>
   </div>
 
-  <div class="card" id="resultsCard" style="display:none;">
+  <div class="card standalone" id="resultsCard" style="display:none;">
     <div class="summary">
       <div class="stat"><div class="n" id="statTotal">0</div><div class="l">Records checked</div></div>
       <div class="stat valid"><div class="n" id="statValid">0</div><div class="l">Valid</div></div>
@@ -298,8 +375,8 @@
         <option value="VALID">Valid only</option>
         <option value="NOT VALID">Not valid only</option>
       </select>
-      <button id="downloadXlsx">Download report (.xlsx)</button>
-      <button id="downloadCsv">Download report (.csv)</button>
+      <button id="downloadXlsx">Export XLSX</button>
+      <button id="downloadCsv">Export CSV</button>
       <button class="primary" id="newFileBtn">Validate another file</button>
     </div>
 
@@ -308,9 +385,9 @@
         <thead>
           <tr>
             <th style="width:32%">Supplier Barcode</th>
-            <th style="width:16%">Validation</th>
+            <th style="width:18%">Validation</th>
             <th>Reason</th>
-            <th style="width:12%">Type</th>
+            <th style="width:14%">Type</th>
           </tr>
         </thead>
         <tbody id="resultsBody"></tbody>
@@ -336,7 +413,7 @@
   const filterSelect = document.getElementById('filterSelect');
   const emptyMsg = document.getElementById('emptyMsg');
 
-  let reportRows = []; // {barcode, status, reason}
+  let reportRows = [];
   let currentFileLabel = 'validation-report';
 
   dropzone.addEventListener('click', () => fileInput.click());
@@ -367,6 +444,11 @@
   document.getElementById('downloadCsv').addEventListener('click', ()=>downloadReport('csv'));
 
   function setStatus(msg, isErr){
+    if(!msg) {
+      statusEl.style.display = 'none';
+      return;
+    }
+    statusEl.style.display = 'block';
     statusEl.textContent = msg;
     statusEl.className = isErr ? 'err' : '';
   }
@@ -411,8 +493,6 @@
     reportRows = [];
     for(let r=1; r<rows.length; r++){
       const rawVal = rows[r][barcodeCol];
-      // stop if entirely blank trailing rows aren't meaningfully present; VBA used LastRow based on this column,
-      // so we include every row up to the sheet's extent, same as the macro.
       const barcode = (rawVal === undefined || rawVal === null) ? '' : String(rawVal).trim();
       let status = 'VALID';
       let reason = '';
@@ -447,9 +527,9 @@
     const total = reportRows.length;
     const validCount = reportRows.filter(r=>r.status==='VALID').length;
     const invalidCount = total - validCount;
-    statTotal.textContent = total;
-    statValid.textContent = validCount;
-    statInvalid.textContent = invalidCount;
+    statTotal.textContent = total.toLocaleString();
+    statValid.textContent = validCount.toLocaleString();
+    statInvalid.textContent = invalidCount.toLocaleString();
     searchBox.value = '';
     filterSelect.value = 'ALL';
     resultsCard.style.display = 'block';
@@ -496,12 +576,12 @@
       const wb = XLSX.utils.book_new();
       const now = new Date();
       const datePart = String(now.getDate()).padStart(2,'0') + '-' +
-                        String(now.getMonth()+1).padStart(2,'0') + '-' +
-                        now.getFullYear();
+                       String(now.getMonth()+1).padStart(2,'0') + '-' +
+                       now.getFullYear();
       let timePart = now.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',hour12:true});
-      timePart = timePart.replace(/:/g, '.'); // Excel sheet names can't contain ':'
+      timePart = timePart.replace(/:/g, '.');
       let sheetName = (datePart + ' ' + timePart)
-        .replace(/[\\\/\?\*\[\]:]/g, '.') // strip all Excel-invalid sheet name characters
+        .replace(/[\\\/\?\*\[\]:]/g, '.')
         .substring(0, 31);
       XLSX.utils.book_append_sheet(wb, ws, sheetName);
       XLSX.writeFile(wb, currentFileLabel + '.xlsx');
